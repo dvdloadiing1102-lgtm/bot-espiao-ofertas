@@ -14,34 +14,34 @@ def home():
 def manter_online():
     app.run(host="0.0.0.0", port=int(os.environ.get('PORT', 8080)))
 
-# Inicia o servidor falso em segundo plano
 threading.Thread(target=manter_online, daemon=True).start()
 
-# --- 2. CREDENCIAIS DO TELEGRAM ---
+# --- 2. CREDENCIAIS ---
 API_ID = int(os.environ.get('API_ID'))
 API_HASH = os.environ.get('API_HASH')
 SESSION_STRING = os.environ.get('SESSION_STRING')
 
-# --- 3. CONFIGURAÇÃO DOS CANAIS ---
-# Escuta as Mensagens Guardadas ('me') e o Tá Barataço
-CANAIS_ALVO = ['me', 'https://t.me/tabaratasso'] 
+# --- 3. CONFIGURAÇÃO ---
+# Adicionados os novos canais na nossa lista de espionagem!
+CANAIS_ALVO = [
+    'me', 
+    '@tabaratasso', 
+    '@promocoesecuponsglobais', 
+    '@LinksBrazil'
+] 
 
-# O SEU CANAL VERDADEIRO AQUI (Corrigido!)
 MEU_CANAL = 'https://t.me/dvdpromo' 
 
-# --- 4. CORREÇÃO DO EVENT LOOP ---
+# --- 4. MOTOR DO TELEGRAM ---
 loop = asyncio.new_event_loop()
 asyncio.set_event_loop(loop)
 
-# --- 5. LÓGICA DO BOT ---
-print("A iniciar a sessão do Bot Espião...")
 client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH, loop=loop)
 
 @client.on(events.NewMessage(chats=CANAIS_ALVO))
 async def roubar_oferta(event):
     try:
         texto_original = event.message.text or ""
-        # Agora com o nome correto da sua marca
         texto_final = f"{texto_original}\n\n🔥 **Mais uma oferta na DVD Promo!**"
         
         await client.send_message(MEU_CANAL, texto_final, file=event.message.media)
@@ -49,6 +49,15 @@ async def roubar_oferta(event):
     except Exception as e:
         print(f"❌ Erro ao processar oferta: {e}")
 
-print("🚀 Bot Espião a operar nas sombras...")
-client.start()
-client.run_until_disconnected()
+# --- 5. LÓGICA DE INICIALIZAÇÃO (A MÁGICA PARA TIRAR O PONTO CEGO) ---
+async def iniciar_bot():
+    print("A iniciar a sessão do Bot Espião...")
+    await client.start()
+    
+    print("A limpar o ponto cego e carregar conversas...")
+    await client.get_dialogs() # Lê os novos canais que você entrou
+    
+    print("🚀 Bot Espião a operar nas sombras...")
+    await client.run_until_disconnected()
+
+loop.run_until_complete(iniciar_bot())
