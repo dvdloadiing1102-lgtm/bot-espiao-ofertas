@@ -24,7 +24,6 @@ API_HASH = os.environ.get('API_HASH')
 SESSION_STRING = os.environ.get('SESSION_STRING')
 
 # --- 3. CONFIGURAÇÃO DOS CANAIS ---
-# A sua Tropa de Choque agora com 6 canais!
 CANAIS_ALVO = [
     'me', 
     '@tabaratasso', 
@@ -54,12 +53,10 @@ def converter_link(url_original):
             return f"{url_base}?utm_source={SHOPEE_ID}&utm_medium=affiliates"
         
         elif 'mercadolivre' in url_base.lower() or 'mlb' in url_base.lower() or 'meli' in url_base.lower():
-            # TRAVA ANTI-VITRINE: Se for link para o perfil do concorrente, bloqueia!
+            # A NOVA TRAVA: Se for vitrine, avisa o robô para mandar pro privado!
             if '/social/' in url_base.lower():
-                print(f"🚫 Link de vitrine ignorado: {url_base}")
-                return "LOJA_DESCONHECIDA"
+                return "VITRINE_ML"
             
-            # Se for um produto normal, injeta a sua comissão
             return f"{url_base}?matt_tool={ML_TOOL}&matt_word={ML_WORD}"
             
         return "LOJA_DESCONHECIDA"
@@ -79,6 +76,7 @@ async def roubar_oferta(event):
         texto_original = event.message.text or ""
         texto_modificado = texto_original
         deve_postar = False 
+        mandar_pro_privado = False # Começa desativado
         
         links_encontrados = re.findall(r'(https?://[^\s]+)', texto_original)
         
@@ -86,21 +84,32 @@ async def roubar_oferta(event):
             for link in links_encontrados:
                 novo_link = converter_link(link)
                 
-                if novo_link != "LOJA_DESCONHECIDA":
-                    # Achou Shopee ou ML válido!
+                if novo_link == "VITRINE_ML":
+                    # Se for vitrine, destaca o link deles e aciona o alarme
+                    texto_modificado = texto_modificado.replace(link, f"🚨 **[LINK DA VITRINE DELES]({link})**")
+                    mandar_pro_privado = True
+                elif novo_link != "LOJA_DESCONHECIDA":
                     texto_modificado = texto_modificado.replace(link, f"[🛒 CLIQUE AQUI PARA VER A OFERTA]({novo_link})")
                     deve_postar = True
                 else:
-                    # Se for Amazon/Magalu ou link de vitrine do ML, apaga o link
+                    # Amazon/Magalu continuam sendo apagadas
                     texto_modificado = texto_modificado.replace(link, "")
         
-        # O FILTRO: Só envia para o canal se 'deve_postar' for True
-        if deve_postar:
+        # --- O NOVO DISTRIBUIDOR DE OFERTAS ---
+        if mandar_pro_privado:
+            # Manda para as Mensagens Salvas ('me')
+            texto_final = f"🚨 **ALERTA DE OFERTA BOA ESCONDIDA!** 🚨\n\n{texto_modificado}\n\n⚠️ *O bot não pegou a comissão porque é link de vitrine. Procure no app e poste manualmente!*"
+            await client.send_message('me', texto_final, file=event.message.media, link_preview=False)
+            print("🚨 Oferta de vitrine enviada para o seu privado!")
+            
+        elif deve_postar:
+            # Manda para o Canal Oficial no automático
             texto_final = f"{texto_modificado}\n\n🔥 **Mais uma oferta na DVD Promo!**"
             await client.send_message(MEU_CANAL, texto_final, file=event.message.media, link_preview=False)
             print("✅ Oferta da Shopee/ML postada com sucesso na DVD Promo!")
+            
         else:
-            print("🚫 Oferta ignorada: Não é produto válido da Shopee/ML ou é vitrine do concorrente.")
+            print("🚫 Oferta ignorada: Não é produto válido ou é loja desconhecida.")
             
     except Exception as e:
         print(f"❌ Erro ao processar oferta: {e}")
@@ -109,10 +118,7 @@ async def roubar_oferta(event):
 async def iniciar_bot():
     print("A iniciar a sessão do Bot Espião...")
     await client.start()
-    
-    # Esta linha faz o robô ler a sua lista de conversas e reconhecer os novos canais
     await client.get_dialogs() 
-    
     print("🚀 Bot Espião Automático a operar nas sombras...")
     await client.run_until_disconnected()
 
