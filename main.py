@@ -9,7 +9,7 @@ import threading
 app = Flask(__name__)
 @app.route('/')
 def home():
-    return "Bot Espião da DVD Ofertas rodando 100%!"
+    return "Bot Espião da DVD Promo a rodar a 100%!"
 
 def manter_online():
     app.run(host="0.0.0.0", port=int(os.environ.get('PORT', 8080)))
@@ -23,30 +23,32 @@ API_HASH = os.environ.get('API_HASH')
 SESSION_STRING = os.environ.get('SESSION_STRING')
 
 # --- 3. CONFIGURAÇÃO DOS CANAIS ---
-# Adicionamos 'me' (suas Mensagens Salvas) para testar na hora
-# E mudamos o @ pelo link completo do concorrente para corrigir o ponto cego
+# Escuta as Mensagens Guardadas ('me') e o Tá Barataço
 CANAIS_ALVO = ['me', 'https://t.me/tabaratasso'] 
-MEU_CANAL = '@dvdofertas' 
 
-# --- 4. CORREÇÃO DO EVENT LOOP (Para o Render não travar) ---
+# O SEU CANAL VERDADEIRO AQUI (Corrigido!)
+MEU_CANAL = 'https://t.me/dvdpromo' 
+
+# --- 4. CORREÇÃO DO EVENT LOOP ---
 loop = asyncio.new_event_loop()
 asyncio.set_event_loop(loop)
 
 # --- 5. LÓGICA DO BOT ---
-print("Iniciando a sessão do Bot Espião...")
+print("A iniciar a sessão do Bot Espião...")
 client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH, loop=loop)
 
 @client.on(events.NewMessage(chats=CANAIS_ALVO))
 async def roubar_oferta(event):
     try:
         texto_original = event.message.text or ""
-        texto_final = f"{texto_original}\n\n🔥 **Mais uma oferta na DVD Ofertas!**"
+        # Agora com o nome correto da sua marca
+        texto_final = f"{texto_original}\n\n🔥 **Mais uma oferta na DVD Promo!**"
         
         await client.send_message(MEU_CANAL, texto_final, file=event.message.media)
-        print("✅ Oferta capturada e postada no canal com sucesso!")
+        print("✅ Oferta capturada e publicada no canal com sucesso!")
     except Exception as e:
         print(f"❌ Erro ao processar oferta: {e}")
 
-print("🚀 Bot Espião operando nas sombras...")
+print("🚀 Bot Espião a operar nas sombras...")
 client.start()
 client.run_until_disconnected()
