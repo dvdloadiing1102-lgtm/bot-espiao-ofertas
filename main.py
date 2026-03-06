@@ -43,7 +43,14 @@ def converter_link(url_original):
         
         if 'shopee' in url_base.lower():
             return f"{url_base}?utm_source={SHOPEE_ID}&utm_medium=affiliates"
+        
         elif 'mercadolivre' in url_base.lower() or 'mlb' in url_base.lower() or 'meli' in url_base.lower():
+            # TRAVA ANTI-VITRINE: Se for link para o perfil do concorrente, bloqueia!
+            if '/social/' in url_base.lower():
+                print(f"🚫 Link de vitrine ignorado: {url_base}")
+                return "LOJA_DESCONHECIDA"
+            
+            # Se for um produto normal, injeta a sua comissão
             return f"{url_base}?matt_tool={ML_TOOL}&matt_word={ML_WORD}"
             
         return "LOJA_DESCONHECIDA"
@@ -62,7 +69,7 @@ async def roubar_oferta(event):
     try:
         texto_original = event.message.text or ""
         texto_modificado = texto_original
-        deve_postar = False # Começa bloqueado. Só libera se achar Shopee ou ML.
+        deve_postar = False # Começa bloqueado. Só libera se achar Shopee ou ML válido.
         
         links_encontrados = re.findall(r'(https?://[^\s]+)', texto_original)
         
@@ -71,11 +78,11 @@ async def roubar_oferta(event):
                 novo_link = converter_link(link)
                 
                 if novo_link != "LOJA_DESCONHECIDA":
-                    # Achou Shopee ou ML! Substitui o link e libera a postagem.
+                    # Achou Shopee ou ML válido! Substitui o link e libera a postagem.
                     texto_modificado = texto_modificado.replace(link, f"[🛒 CLIQUE AQUI PARA VER A OFERTA]({novo_link})")
                     deve_postar = True
                 else:
-                    # Se for Amazon/Magalu, apaga o link do concorrente para garantir
+                    # Se for Amazon/Magalu ou link de vitrine do ML, apaga o link
                     texto_modificado = texto_modificado.replace(link, "")
         
         # O FILTRO: Só envia para o canal se 'deve_postar' for True
@@ -84,7 +91,7 @@ async def roubar_oferta(event):
             await client.send_message(MEU_CANAL, texto_final, file=event.message.media, link_preview=False)
             print("✅ Oferta da Shopee/ML postada com sucesso na DVD Promo!")
         else:
-            print("🚫 Oferta ignorada: Não é da Shopee nem do Mercado Livre.")
+            print("🚫 Oferta ignorada: Não é produto válido da Shopee/ML ou é vitrine do concorrente.")
             
     except Exception as e:
         print(f"❌ Erro ao processar oferta: {e}")
