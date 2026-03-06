@@ -23,7 +23,9 @@ API_HASH = os.environ.get('API_HASH')
 SESSION_STRING = os.environ.get('SESSION_STRING')
 
 # --- 3. CONFIGURAÇÃO DOS CANAIS ---
-CANAIS_ALVO = ['@tabaratasso'] 
+# Adicionamos 'me' (suas Mensagens Salvas) para testar na hora
+# E mudamos o @ pelo link completo do concorrente para corrigir o ponto cego
+CANAIS_ALVO = ['me', 'https://t.me/tabaratasso'] 
 MEU_CANAL = '@dvdofertas' 
 
 # --- 4. CORREÇÃO DO EVENT LOOP (Para o Render não travar) ---
@@ -41,7 +43,7 @@ async def roubar_oferta(event):
         texto_final = f"{texto_original}\n\n🔥 **Mais uma oferta na DVD Ofertas!**"
         
         await client.send_message(MEU_CANAL, texto_final, file=event.message.media)
-        print("✅ Oferta capturada do @tabaratasso e postada no canal!")
+        print("✅ Oferta capturada e postada no canal com sucesso!")
     except Exception as e:
         print(f"❌ Erro ao processar oferta: {e}")
 
