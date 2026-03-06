@@ -24,7 +24,16 @@ API_HASH = os.environ.get('API_HASH')
 SESSION_STRING = os.environ.get('SESSION_STRING')
 
 # --- 3. CONFIGURAÇÃO DOS CANAIS ---
-CANAIS_ALVO = ['me', '@tabaratasso', '@promocoesecuponsglobais', '@LinksBrazil'] 
+# A sua Tropa de Choque agora com 6 canais!
+CANAIS_ALVO = [
+    'me', 
+    '@tabaratasso', 
+    '@promocoesecuponsglobais', 
+    '@LinksBrazil',
+    '@tigersinaiswin',
+    '@ofertasnatela',
+    '@OfertaLegal'
+] 
 MEU_CANAL = 'https://t.me/dvdpromo' 
 
 # --- SEUS IDs SECRETOS DE AFILIADO ---
@@ -69,7 +78,7 @@ async def roubar_oferta(event):
     try:
         texto_original = event.message.text or ""
         texto_modificado = texto_original
-        deve_postar = False # Começa bloqueado. Só libera se achar Shopee ou ML válido.
+        deve_postar = False 
         
         links_encontrados = re.findall(r'(https?://[^\s]+)', texto_original)
         
@@ -78,7 +87,7 @@ async def roubar_oferta(event):
                 novo_link = converter_link(link)
                 
                 if novo_link != "LOJA_DESCONHECIDA":
-                    # Achou Shopee ou ML válido! Substitui o link e libera a postagem.
+                    # Achou Shopee ou ML válido!
                     texto_modificado = texto_modificado.replace(link, f"[🛒 CLIQUE AQUI PARA VER A OFERTA]({novo_link})")
                     deve_postar = True
                 else:
@@ -100,7 +109,10 @@ async def roubar_oferta(event):
 async def iniciar_bot():
     print("A iniciar a sessão do Bot Espião...")
     await client.start()
-    await client.get_dialogs()
+    
+    # Esta linha faz o robô ler a sua lista de conversas e reconhecer os novos canais
+    await client.get_dialogs() 
+    
     print("🚀 Bot Espião Automático a operar nas sombras...")
     await client.run_until_disconnected()
 
