@@ -41,8 +41,9 @@ SHOPEE_ID = "an_18380960994"
 ML_TOOL = "15256041"
 ML_WORD = "davidvasconcellos"
 
-# A SUA LOJA MAGALU ESTÁ AQUI 👇
-MAGALU_ID = "dvdnet" 
+# NOVOS IDs DO MAGALU (ATUALIZADO)
+MAGALU_PROMOTER = "5636885"
+MAGALU_PARTNER = "3440"
 
 # --- 4. A MÁGICA: ENGENHARIA REVERSA DE LINKS ---
 def converter_link(url_original):
@@ -63,15 +64,14 @@ def converter_link(url_original):
                 return "VITRINE_ML"
             return f"{url_base}?matt_tool={ML_TOOL}&matt_word={ML_WORD}"
             
-        # 3. MAGALU 
+        # 3. MAGALU (SISTEMA NOVO)
         elif 'magalu' in url_final.lower() or 'magazine' in url_final.lower():
-            parsed = urllib.parse.urlparse(url_final)
-            path = parsed.path
-            # Tira a loja do concorrente do caminho e injeta a SUA loja (dvdnet)
-            path = re.sub(r'^/magazine[^/]+/', '/', path)
-            if not path.startswith('/'):
-                path = '/' + path
-            return f"https://www.magazinevoce.com.br/magazine{MAGALU_ID}{path}"
+            # Se o concorrente usar o formato antigo (magazinevoce), a gente limpa:
+            if 'magazinevoce.com.br' in url_base:
+                url_base = re.sub(r'magazinevoce\.com\.br/magazine[^/]+/', 'magazineluiza.com.br/', url_base)
+                
+            # Injeta a SUA comissão no formato novo do Magalu
+            return f"{url_base}?promoter_id={MAGALU_PROMOTER}&partner_id={MAGALU_PARTNER}"
             
         return "LOJA_DESCONHECIDA"
     except Exception as e:
