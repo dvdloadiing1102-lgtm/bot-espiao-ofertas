@@ -39,6 +39,7 @@ MEU_CANAL = 'https://t.me/dvdpromo'
 SHOPEE_ID = "an_18380960994"
 ML_TOOL = "15256041"
 ML_WORD = "davidvasconcellos"
+MAGALU_ID = "magazinedvdnet" # Adicionada a sua loja Magalu!
 
 # --- 4. A MÁGICA: ENGENHARIA REVERSA DE LINKS ---
 def converter_link(url_original):
@@ -53,12 +54,16 @@ def converter_link(url_original):
             return f"{url_base}?utm_source={SHOPEE_ID}&utm_medium=affiliates"
         
         elif 'mercadolivre' in url_base.lower() or 'mlb' in url_base.lower() or 'meli' in url_base.lower():
-            # A NOVA TRAVA: Se for vitrine, avisa o robô para mandar pro privado!
             if '/social/' in url_base.lower():
                 return "VITRINE_ML"
-            
             return f"{url_base}?matt_tool={ML_TOOL}&matt_word={ML_WORD}"
             
+        elif 'magazineluiza' in url_base.lower() or 'magazinevoce' in url_base.lower():
+            # A nova inteligência do Magalu: joga o produto para dentro da sua loja
+            if '.com.br/' in url_base:
+                caminho_produto = url_base.split('.com.br/')[1]
+                return f"https://www.magazinevoce.com.br/{MAGALU_ID}/{caminho_produto}"
+                
         return "LOJA_DESCONHECIDA"
     except Exception as e:
         print(f"Erro ao desencurtar {url_original}: {e}")
@@ -76,7 +81,7 @@ async def roubar_oferta(event):
         texto_original = event.message.text or ""
         texto_modificado = texto_original
         deve_postar = False 
-        mandar_pro_privado = False # Começa desativado
+        mandar_pro_privado = False 
         
         links_encontrados = re.findall(r'(https?://[^\s]+)', texto_original)
         
@@ -85,28 +90,23 @@ async def roubar_oferta(event):
                 novo_link = converter_link(link)
                 
                 if novo_link == "VITRINE_ML":
-                    # Se for vitrine, destaca o link deles e aciona o alarme
                     texto_modificado = texto_modificado.replace(link, f"🚨 **[LINK DA VITRINE DELES]({link})**")
                     mandar_pro_privado = True
                 elif novo_link != "LOJA_DESCONHECIDA":
                     texto_modificado = texto_modificado.replace(link, f"[🛒 CLIQUE AQUI PARA VER A OFERTA]({novo_link})")
                     deve_postar = True
                 else:
-                    # Amazon/Magalu continuam sendo apagadas
                     texto_modificado = texto_modificado.replace(link, "")
         
-        # --- O NOVO DISTRIBUIDOR DE OFERTAS ---
         if mandar_pro_privado:
-            # Manda para as Mensagens Salvas ('me')
             texto_final = f"🚨 **ALERTA DE OFERTA BOA ESCONDIDA!** 🚨\n\n{texto_modificado}\n\n⚠️ *O bot não pegou a comissão porque é link de vitrine. Procure no app e poste manualmente!*"
             await client.send_message('me', texto_final, file=event.message.media, link_preview=False)
             print("🚨 Oferta de vitrine enviada para o seu privado!")
             
         elif deve_postar:
-            # Manda para o Canal Oficial no automático
             texto_final = f"{texto_modificado}\n\n🔥 **Mais uma oferta na DVD Promo!**"
             await client.send_message(MEU_CANAL, texto_final, file=event.message.media, link_preview=False)
-            print("✅ Oferta da Shopee/ML postada com sucesso na DVD Promo!")
+            print("✅ Oferta postada com sucesso na DVD Promo!")
             
         else:
             print("🚫 Oferta ignorada: Não é produto válido ou é loja desconhecida.")
