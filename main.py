@@ -2,6 +2,7 @@ import os
 import asyncio
 import re
 import urllib.request
+import urllib.parse
 from telethon.sync import TelegramClient, events
 from telethon.sessions import StringSession
 from flask import Flask
@@ -39,7 +40,9 @@ MEU_CANAL = 'https://t.me/dvdpromo'
 SHOPEE_ID = "an_18380960994"
 ML_TOOL = "15256041"
 ML_WORD = "davidvasconcellos"
-MAGALU_ID = "magazinedvdnet" # Adicionada a sua loja Magalu!
+
+# A SUA LOJA MAGALU ESTÁ AQUI 👇
+MAGALU_ID = "dvdnet" 
 
 # --- 4. A MÁGICA: ENGENHARIA REVERSA DE LINKS ---
 def converter_link(url_original):
@@ -50,20 +53,26 @@ def converter_link(url_original):
         
         url_base = url_final.split('?')[0]
         
+        # 1. SHOPEE
         if 'shopee' in url_base.lower():
             return f"{url_base}?utm_source={SHOPEE_ID}&utm_medium=affiliates"
         
+        # 2. MERCADO LIVRE
         elif 'mercadolivre' in url_base.lower() or 'mlb' in url_base.lower() or 'meli' in url_base.lower():
             if '/social/' in url_base.lower():
                 return "VITRINE_ML"
             return f"{url_base}?matt_tool={ML_TOOL}&matt_word={ML_WORD}"
             
-        elif 'magazineluiza' in url_base.lower() or 'magazinevoce' in url_base.lower():
-            # A nova inteligência do Magalu: joga o produto para dentro da sua loja
-            if '.com.br/' in url_base:
-                caminho_produto = url_base.split('.com.br/')[1]
-                return f"https://www.magazinevoce.com.br/{MAGALU_ID}/{caminho_produto}"
-                
+        # 3. MAGALU 
+        elif 'magalu' in url_final.lower() or 'magazine' in url_final.lower():
+            parsed = urllib.parse.urlparse(url_final)
+            path = parsed.path
+            # Tira a loja do concorrente do caminho e injeta a SUA loja (dvdnet)
+            path = re.sub(r'^/magazine[^/]+/', '/', path)
+            if not path.startswith('/'):
+                path = '/' + path
+            return f"https://www.magazinevoce.com.br/magazine{MAGALU_ID}{path}"
+            
         return "LOJA_DESCONHECIDA"
     except Exception as e:
         print(f"Erro ao desencurtar {url_original}: {e}")
@@ -99,7 +108,7 @@ async def roubar_oferta(event):
                     texto_modificado = texto_modificado.replace(link, "")
         
         if mandar_pro_privado:
-            texto_final = f"🚨 **ALERTA DE OFERTA BOA ESCONDIDA!** 🚨\n\n{texto_modificado}\n\n⚠️ *O bot não pegou a comissão porque é link de vitrine. Procure no app e poste manualmente!*"
+            texto_final = f"🚨 **ALERTA DE OFERTA BOA ESCONDIDA!** 🚨\n\n{texto_modificado}\n\n⚠️ *O bot não pegou a comissão porque é link de vitrine do ML. Procure no app e poste manualmente!*"
             await client.send_message('me', texto_final, file=event.message.media, link_preview=False)
             print("🚨 Oferta de vitrine enviada para o seu privado!")
             
