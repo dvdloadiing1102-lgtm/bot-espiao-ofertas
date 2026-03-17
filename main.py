@@ -3,6 +3,7 @@ import asyncio
 import re
 import urllib.request
 import urllib.parse
+import urllib.error
 from telethon.sync import TelegramClient, events
 from telethon.sessions import StringSession
 from flask import Flask
@@ -36,22 +37,55 @@ CANAIS_ALVO = [
 ] 
 MEU_CANAL = 'https://t.me/dvdpromo' 
 
-# --- SEUS IDs SECRETOS DE AFILIADO ---
+# --- IDs SECRETOS DE AFILIADO ---
 SHOPEE_ID = "an_18380960994"
 ML_TOOL = "15256041"
 ML_WORD = "davidvasconcellos"
 
-# NOVOS IDs DO MAGALU (ATUALIZADO)
 MAGALU_PROMOTER = "5636885"
 MAGALU_PARTNER = "3440"
 
-# --- 4. A MÁGICA: ENGENHARIA REVERSA DE LINKS ---
+# --- 4. A MÁGICA: MOTOR ANTI-BLOQUEIO DO MAGALU ---
+class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def http_error_302(self, req, fp, code, msg, headers):
+        infourl = urllib.response.addinfourl(fp, headers, req.get_full_url())
+        infourl.status = code
+        infourl.code = code
+        return infourl
+    http_error_300 = http_error_302
+    http_error_301 = http_error_302
+    http_error_303 = http_error_302
+    http_error_307 = http_error_302
+
 def converter_link(url_original):
     try:
-        req = urllib.request.Request(url_original, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
-        with urllib.request.urlopen(req, timeout=10) as response:
-            url_final = response.geturl()
+        opener = urllib.request.build_opener(NoRedirectHandler())
+        current_url = url_original
         
+        # O bot vai rastrear o link passo a passo, no máximo 5 vezes
+        for _ in range(5):
+            req = urllib.request.Request(current_url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+            try:
+                response = opener.open(req, timeout=10)
+                if response.code in (301, 302, 303, 307, 308):
+                    new_url = response.headers.get('Location')
+                    if not new_url:
+                        break
+                    
+                    # SE O PRÓXIMO DESTINO FOR O MURO DO MAGALU (PERFDRIVE), O BOT SALTA FORA!
+                    if 'perfdrive' in new_url.lower():
+                        break 
+                        
+                    current_url = urllib.parse.urljoin(current_url, new_url)
+                else:
+                    break
+            except urllib.error.HTTPError as e:
+                # Se esbarrar num erro 403 do muro, o link que temos na mão já é o do produto certo!
+                break
+            except Exception as e:
+                break
+                
+        url_final = current_url
         url_base = url_final.split('?')[0]
         
         # 1. SHOPEE
@@ -64,13 +98,13 @@ def converter_link(url_original):
                 return "VITRINE_ML"
             return f"{url_base}?matt_tool={ML_TOOL}&matt_word={ML_WORD}"
             
-        # 3. MAGALU (SISTEMA NOVO)
+        # 3. MAGALU
         elif 'magalu' in url_final.lower() or 'magazine' in url_final.lower():
-            # Se o concorrente usar o formato antigo (magazinevoce), a gente limpa:
+            # Limpa qualquer formato antigo de loja do concorrente
             if 'magazinevoce.com.br' in url_base:
                 url_base = re.sub(r'magazinevoce\.com\.br/magazine[^/]+/', 'magazineluiza.com.br/', url_base)
-                
-            # Injeta a SUA comissão no formato novo do Magalu
+            
+            # Injeta o teu DNA de vendedor
             return f"{url_base}?promoter_id={MAGALU_PROMOTER}&partner_id={MAGALU_PARTNER}"
             
         return "LOJA_DESCONHECIDA"
@@ -102,23 +136,23 @@ async def roubar_oferta(event):
                     texto_modificado = texto_modificado.replace(link, f"🚨 **[LINK DA VITRINE DELES]({link})**")
                     mandar_pro_privado = True
                 elif novo_link != "LOJA_DESCONHECIDA":
-                    texto_modificado = texto_modificado.replace(link, f"[🛒 CLIQUE AQUI PARA VER A OFERTA]({novo_link})")
+                    texto_modificado = texto_modificado.replace(link, f"[🛒 CLICA AQUI PARA VER A OFERTA]({novo_link})")
                     deve_postar = True
                 else:
                     texto_modificado = texto_modificado.replace(link, "")
         
         if mandar_pro_privado:
-            texto_final = f"🚨 **ALERTA DE OFERTA BOA ESCONDIDA!** 🚨\n\n{texto_modificado}\n\n⚠️ *O bot não pegou a comissão porque é link de vitrine do ML. Procure no app e poste manualmente!*"
+            texto_final = f"🚨 **ALERTA DE OFERTA BOA ESCONDIDA!** 🚨\n\n{texto_modificado}\n\n⚠️ *O bot não pegou na comissão porque é um link de vitrine do ML. Procura na app e publica manualmente!*"
             await client.send_message('me', texto_final, file=event.message.media, link_preview=False)
-            print("🚨 Oferta de vitrine enviada para o seu privado!")
+            print("🚨 Oferta de vitrine enviada para o privado!")
             
         elif deve_postar:
             texto_final = f"{texto_modificado}\n\n🔥 **Mais uma oferta na DVD Promo!**"
             await client.send_message(MEU_CANAL, texto_final, file=event.message.media, link_preview=False)
-            print("✅ Oferta postada com sucesso na DVD Promo!")
+            print("✅ Oferta publicada com sucesso na DVD Promo!")
             
         else:
-            print("🚫 Oferta ignorada: Não é produto válido ou é loja desconhecida.")
+            print("🚫 Oferta ignorada: Não é produto válido ou loja desconhecida.")
             
     except Exception as e:
         print(f"❌ Erro ao processar oferta: {e}")
